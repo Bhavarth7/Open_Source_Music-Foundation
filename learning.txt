@@ -1,0 +1,23 @@
+1. Open source music foundation system for text/lyrics to music generation with multillingual support.
+2. Components: a music language model, an audio codec/vocoder, a whisper based lyrics transcriber, and CLAP style arudio text alignment.
+
+HLA ( High Level Architecture)
+- Text Encoding: lyrics + style tags tokenized with a shared tokenizer (tokenizer.json)
+- Music LM: transformer decoder (torchtune LLaMA 3.2 variants) generates discrete audio codes.
+- Guidance: Classifier free guidance CFG duplicates batch when cfg_scale > 1.0 
+- Autoregressive Loop: generate codebook frames step by step with KV cache reuse.
+- Codec/Vocoder (HeartCodec): flow matching + scalar codec decodes discrette codes to waveform; overlap - add smoothing for long audio 
+- Transcription: optional whisper pipeline for lyrics transcription 
+
+Key Components
+- Uses torchtune LLaMA 3.2 decoder: text embeddings projected into decoder spaces
+- RVQ style , multiple codebooks; audio head produces logitus for codebooks 
+- MUQ embeddings mug_linear for continuous conditioning 
+- CFG: batch is doubledn when cfg_scale >1;unconditional branch uses unconditional_text_embedding 
+-  Sampling: top-k + temperature with a multinomial sampler that avoids CUDA sync 
+-  KV cache setup_caches(max_batch_size) preallocates caches and casual maska for backbone / decoder 
+- Generation: generate_frame consumes prompt tokens+ mask+pos and output next framer (per codebook) 
+- autocast with configurable dtype (bfloat16)
+
+Pipeline - 
+1. Preprocess:
